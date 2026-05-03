@@ -127,13 +127,24 @@ def tmdb_search_movie(title: str):
     except: return {}
 
 def enrich_movie(movie_id: int):
-    meta = movie_metadata.get(movie_id, {})
-    title = meta.get("title", "Unknown")
+    meta = movie_metadata.get(int(movie_id)) or movie_metadata.get(str(movie_id)) or {}
+    title = meta.get("title")
+    genres = meta.get("genres", "N/A")
+    
+    if not title and not movies_df.empty and 'movieId' in movies_df.columns:
+        movie_row = movies_df[movies_df['movieId'] == int(movie_id)]
+        if not movie_row.empty:
+            title = movie_row.iloc[0]['title']
+            genres = movie_row.iloc[0]['genres']
+
+    title = title or "Unknown"
+    
     tmdb_data = tmdb_search_movie(title)
+    
     return {
         "movie_id": int(movie_id),
         "title": title,
-        "genres": meta.get("genres", "N/A"),
+        "genres": genres,
         "cast": meta.get("cast_names", "N/A"),
         "overview": tmdb_data.get("overview"),
         "poster": f"https://image.tmdb.org/t/p/w500{tmdb_data['poster_path']}" if tmdb_data.get("poster_path") else None,
@@ -173,19 +184,19 @@ def hybrid_predict(user_id: int, movie_id: int, alpha: float):
 def health():
     return {"status": "ok", "models_loaded": collaborative_model is not None}
 
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+# class LoginRequest(BaseModel):
+#     username: str
+#     password: str
 
-@app.post("/login")
-def login(data: LoginRequest):
-    user = USERS.get(data.username)
-    if not user or user["password"] != data.password:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    return {"user_id": user["user_id"], "role": user["role"], "username": data.username}
+# @app.post("/login")
+# def login(data: LoginRequest):
+#     user = USERS.get(data.username)
+#     if not user or user["password"] != data.password:
+#         raise HTTPException(status_code=401, detail="Invalid credentials")
+#     return {"user_id": user["user_id"], "role": user["role"], "username": data.username}
 
 @app.get("/recommend")
-def recommend(user_id: int, n: int = Query(10, le=50), alpha: float = Query(0.7, ge=0.0, le=1.0)):
+def recommend(user_id: int=19685, n: int = Query(10, le=50), alpha: float = Query(0.7, ge=0.0, le=1.0)):
     if collaborative_model is None or not ALL_MOVIES:
         raise HTTPException(status_code=503, detail="Models not loaded")
     try:
@@ -206,7 +217,7 @@ def recommend(user_id: int, n: int = Query(10, le=50), alpha: float = Query(0.7,
     return results
 
 @app.get("/user/history")
-def user_history(user_id: int):
+def user_history(user_id: int=19685):
     try:
         inner_uid = collaborative_model.trainset.to_inner_uid(int(user_id))
         user_ratings = collaborative_model.trainset.ur.get(inner_uid, [])
@@ -270,9 +281,8 @@ def get_trending(limit: int = Query(20, le=50)):
 
 @app.get("/movie/{movie_id}")
 def get_movie_details(movie_id: int):
-    if movie_id not in movie_metadata:
-        raise HTTPException(status_code=404, detail="Movie not found")
-    
+    # We removed the strict 'raise HTTPException' here.
+    # Now it will safely return the movie using the fallback logic above!
     return enrich_movie(movie_id)
 
 @app.get("/recommend/genre")

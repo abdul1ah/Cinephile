@@ -15,7 +15,8 @@
     <div class="bg-gradient"></div>
     <div class="bg-noise"></div>
 
-    <nav class="navbar" id="navbar" style="display:none;">
+    <!-- Removed style="display:none;" so the navbar shows immediately -->
+    <nav class="navbar" id="navbar">
         <div class="logo">🎬 Cinephile</div>
 
         <div class="nav-actions" id="nav-links">
@@ -34,31 +35,12 @@
                 />
             </div>
             
-            <button class="nav-btn" id="logout-btn" style="color: #ff4d4d;">
-                <i class="fa-solid fa-right-from-bracket"></i> Logout
-            </button>
+            <!-- Removed the Logout button -->
         </div>
     </nav>
 
-    <div id="login-page" class="login-container">
-      <div class="control-card">
-        <h2>Login to Cinephile</h2>
-        <div class="input-wrapper">
-          <i class="fa-solid fa-user"></i>
-          <input id="username" type="text" placeholder="Username" />
-        </div>
-
-        <div class="input-wrapper">
-          <i class="fa-solid fa-lock"></i>
-          <input id="password" type="password" placeholder="Password" />
-        </div>
-
-        <button id="login-btn" class="primary-btn">Login</button>
-        <p id="login-error" class="login-error"></p>
-      </div>
-    </div>
-
-    <div id="main-content" style="display:none;">
+    <!-- Removed style="display:none;" so the movie grid shows immediately -->
+    <div id="main-content">
         <section class="hero" id="hero">
             <h1>Welcome to your Cinema📽️</h1>
             <h2>Personalized. Reimagined.</h2>
@@ -70,6 +52,7 @@
         </section>
     </div>
 
+    <!-- Kept the admin container hidden since Abdullah is a standard user -->
     <div id="admin-container" class="admin-dashboard-layout" style="display:none;">
         <div class="admin-header">
             <h2>Admin Dashboard</h2>

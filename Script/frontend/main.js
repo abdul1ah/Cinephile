@@ -10,16 +10,11 @@ const historyBtn = document.getElementById("history-btn");
 
 const navSearchInput = document.getElementById("nav-search-input");
 const mainContent = document.getElementById("main-content");
-const adminContainer = document.getElementById("admin-container");
-const loginPage = document.getElementById("login-page");
-const loginBtn = document.getElementById("login-btn");
-const usernameInput = document.getElementById("username");
-const passwordInput = document.getElementById("password");
-const loginError = document.getElementById("login-error");
-
 const navbar = document.getElementById("navbar");
 const navLinks = document.getElementById("nav-links");
-const logoutBtn = document.getElementById("logout-btn");
+
+// Hardcoded user ID for Abdullah
+const CURRENT_USER_ID = 19685;
 
 // Use an empty string for relative paths so it works on both Localhost and Hugging Face
 const BACKEND_URL = ""; 
@@ -93,10 +88,7 @@ async function apiGet(path, params = {}) {
 
 function showHome() {
     resetView();
-    const role = sessionStorage.getItem("role");
-    if (role === "user") {
-        recommendForUser();
-    }
+    recommendForUser();
 }
 
 async function loadTrending() {
@@ -128,28 +120,22 @@ async function loadGenres() {
 }
 
 async function recommendForUser() {
-    const uid = sessionStorage.getItem("user_id");
-    if (!uid) return;
-
     if(hero) hero.style.display = "none";
     sectionTitle.textContent = "Handpicked For You";
     movieGrid.classList.remove("movie-details-mode");
 
-    const data = await apiGet("/recommend", { user_id: Number(uid), n: 12 });
+    const data = await apiGet("/recommend", { user_id: CURRENT_USER_ID, n: 12 });
     if (data) renderMovies(data, m =>
         `<p class="score">Taste Match: ${m.predicted_rating ? m.predicted_rating.toFixed(2) : 'N/A'}</p>`
     );
 }
 
 async function loadHistory() {
-    const uid = sessionStorage.getItem("user_id");
-    if (!uid) return;
-
     if(hero) hero.style.display = "none";
     sectionTitle.textContent = "Your Watch History";
     movieGrid.classList.remove("movie-details-mode");
 
-    const data = await apiGet("/user/history", { user_id: Number(uid) });
+    const data = await apiGet("/user/history", { user_id: CURRENT_USER_ID });
     if (!data?.length) return showError("No history found.");
     renderMovies(data, m => `<p class="score">Your Rating: ${m.rating}</p>`);
 }
@@ -232,114 +218,12 @@ async function loadMovieDetails(movieId) {
     }
 }
 
-/* ---------------- Auth & Session ---------------- */
-
-function logout() {
-    sessionStorage.clear();
-    window.location.reload();
-}
-if(logoutBtn) logoutBtn.onclick = logout;
-
-function configureNavbarForRole(role) {
-    if(!navbar) return;
-    navbar.style.display = "flex";
-    if(logoutBtn) logoutBtn.style.display = "block";
-
-    const displayStyle = (role === "admin") ? "none" : "flex";
-    
-    if(homeBtn) homeBtn.style.display = displayStyle;
-    if(trendingBtn) trendingBtn.style.display = displayStyle;
-    if(genreBtn) genreBtn.style.display = displayStyle;
-    if(historyBtn) historyBtn.style.display = displayStyle;
-    if(navSearchInput) navSearchInput.parentElement.style.display = displayStyle;
-}
-
-loginBtn?.addEventListener("click", async () => {
-    const usernameInputVal = usernameInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!usernameInputVal || !password) {
-        loginError.textContent = "Please enter username and password.";
-        return;
-    }
-
-    try {
-        const res = await axios.post(`${BACKEND_URL}/login`, { username: usernameInputVal, password });
-        const { role, user_id, username } = res.data;
-        
-        sessionStorage.setItem("user_id", user_id);
-        sessionStorage.setItem("role", role);
-        sessionStorage.setItem("username", username); 
-
-        loginPage.style.display = "none"; 
-        configureNavbarForRole(role);
-
-        if (role === "admin") {
-            mainContent.style.display = "none";
-            adminContainer.style.display = "block";
-            loadAdminMetrics(); 
-        } else {
-            adminContainer.style.display = "none";
-            mainContent.style.display = "block";
-            showHome();
-        }
-    } catch (err) {
-        loginError.textContent = "Invalid username or password.";
-    }
-});
+/* ---------------- Initialization ---------------- */
 
 window.addEventListener("DOMContentLoaded", () => {
-    const role = sessionStorage.getItem("role");
-    const userId = sessionStorage.getItem("user_id");
-
-    // Initial state
-    if(loginPage) loginPage.style.display = "none";
-    if(mainContent) mainContent.style.display = "none";
-    if(adminContainer) adminContainer.style.display = "none";
-    if(navbar) navbar.style.display = "none";
-
-    if (role === "admin") {
-        configureNavbarForRole("admin");
-        adminContainer.style.display = "block";
-        loadAdminMetrics();
-    } else if (role === "user" && userId) {
-        configureNavbarForRole("user");
-        mainContent.style.display = "block";
-        showHome();
-    } else {
-        if(loginPage) loginPage.style.display = "block";
-        sessionStorage.clear(); 
-    }
+    // Fire the home dashboard immediately on load
+    showHome();
 });
-
-/* ---------------- Admin Logic ---------------- */
-
-async function loadAdminMetrics() {
-    const role = sessionStorage.getItem("role");
-    const username = sessionStorage.getItem("username");
-    if (role !== "admin" || !username) return;
-
-    try {
-        const res = await axios.get(`${BACKEND_URL}/admin/stats`, { params: { username } });
-        const data = res.data;
-        document.querySelector("#total-users p").textContent = data.total_users;
-        document.querySelector("#total-movies p").textContent = data.total_movies;
-        document.querySelector("#total-ratings p").textContent = data.total_ratings;
-        document.querySelector("#recent-activity p").textContent = data.recent_ratings || "—";
-
-        const tbody = document.getElementById("admin-table-body");
-        tbody.innerHTML = data.user_metrics.map(u => `
-            <tr>
-                <td>${u.user_id}</td>
-                <td>${u.ratings_count}</td>
-                <td>${u.avg_rating.toFixed(2)}</td>
-                <td>${u.last_activity ?? "—"}</td>
-            </tr>
-        `).join("");
-    } catch (err) {
-        console.error("Admin metrics load failed:", err);
-    }
-}
 
 /* ---------------- Events ---------------- */
 
