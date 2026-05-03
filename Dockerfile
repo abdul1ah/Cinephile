@@ -37,9 +37,5 @@ ENV HOME=/home/user \
 # 8. DEBUG STEP: List files to see if Data/movie_mapping.csv exists
 RUN ls -R /home/user/app/Data
 
-# 9. Run Training
-RUN python workflow/train_pipeline.py
-
-# 10. Final settings for Hugging Face
 EXPOSE 7860
 CMD ["uvicorn", "Script.fastapi.backend:app", "--host", "0.0.0.0", "--port", "7860"]

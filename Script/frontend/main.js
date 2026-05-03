@@ -129,7 +129,10 @@ async function loadAdminMetrics() {
 
     document.querySelector("#total-users h3").textContent = data.total_users.toLocaleString();
     document.querySelector("#total-movies h3").textContent = data.total_movies.toLocaleString();
-    document.querySelector("#total-ratings h3").textContent = data.total_ratings.toLocaleString();
+   document.querySelector("#total-ratings h3").textContent = Intl.NumberFormat("en-US", {
+        notation: "compact",
+        maximumFractionDigits: 1
+    }).format(data.total_ratings);
     document.querySelector("#recent-activity h3").textContent = data.recent_ratings ? data.recent_ratings.toLocaleString() : "—";
 
     const tbody = document.getElementById("admin-table-body");
