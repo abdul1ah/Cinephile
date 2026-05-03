@@ -1,15 +1,15 @@
-# 1. Block the Heavy Weights (The 800MB+ culprits)
-*.pkl
-*.bin
-Script/saved_models/
+# 1. ALLOW the Heavy Models (Removed *.pkl and Script/saved_models/)
 models/
 artifacts/
+*.bin
 
-# 2. Block Large Data Files but KEEP the training set
-# We block all CSVs first, then "unblock" the specific one needed for training
+# 2. ALLOW the CSVs for production
+# We block all extra CSVs, but explicitly unblock the ones we need for production
 Data/*
 !Data/sampled_data.csv
 !Data/movie_mapping.csv
+!Data/ratings.csv
+!Data/movies.csv
 
 # 3. Block Git and GitHub (Major source of hidden bulk)
 .git
