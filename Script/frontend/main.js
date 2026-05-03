@@ -13,16 +13,32 @@ const mainContent = document.getElementById("main-content");
 const navbar = document.getElementById("navbar");
 const navLinks = document.getElementById("nav-links");
 
-// Hardcoded user ID for Abdullah
+// NEW: Admin selectors
+const adminContainer = document.getElementById("admin-container");
+const adminToggleBtn = document.getElementById("admin-toggle-btn");
+
+// Hardcoded user ID for testing
 const CURRENT_USER_ID = 19685;
 
 // Use an empty string for relative paths so it works on both Localhost and Hugging Face
 const BACKEND_URL = ""; 
 let isLoading = false;
+let isAdminView = false; // Tracks if we are looking at the admin dashboard
 
 /* ---------------- UI Helpers ---------------- */
 
+// Ensures we exit admin mode if a standard nav button is clicked
+function ensureUserView() {
+    if (isAdminView) {
+        isAdminView = false;
+        adminContainer.style.display = "none";
+        mainContent.style.display = "block";
+        adminToggleBtn.innerHTML = '<i class="fa-solid fa-chart-pie"></i> Admin';
+    }
+}
+
 function resetView() {
+    ensureUserView();
     if(hero) hero.style.display = "block";
     sectionTitle.textContent = "";
     movieGrid.innerHTML = "";
@@ -70,18 +86,61 @@ function renderMovies(movies, extra = null) {
 async function apiGet(path, params = {}) {
     if (isLoading) return null;
     isLoading = true;
-    showSkeletons();
+    
+    // Only show movie skeletons if we aren't in the admin view
+    if (!isAdminView) showSkeletons();
 
     try {
         const res = await axios.get(`${BACKEND_URL}${path}`, { params });
         return res.data;
     } catch (err) {
         console.error("API Error:", err);
-        showError("Something went wrong loading data.");
+        if (!isAdminView) showError("Something went wrong loading data.");
         return null;
     } finally {
         isLoading = false;
     }
+}
+
+/* ---------------- Admin Logic ---------------- */
+
+async function toggleAdminDashboard() {
+    isAdminView = !isAdminView;
+    
+    if (isAdminView) {
+        // Switch to Admin
+        mainContent.style.display = "none";
+        adminContainer.style.display = "block";
+        adminToggleBtn.innerHTML = '<i class="fa-solid fa-house"></i> Exit Admin';
+        await loadAdminMetrics();
+    } else {
+        // Switch to Home
+        adminContainer.style.display = "none";
+        mainContent.style.display = "block";
+        adminToggleBtn.innerHTML = '<i class="fa-solid fa-chart-pie"></i> Admin';
+        showHome();
+    }
+}
+
+async function loadAdminMetrics() {
+    const data = await apiGet("/admin/stats", { username: "admin" });
+    if (!data) return;
+
+    // Notice we grab the <h3> inside the card now based on the new HTML
+    document.querySelector("#total-users h3").textContent = data.total_users;
+    document.querySelector("#total-movies h3").textContent = data.total_movies;
+    document.querySelector("#total-ratings h3").textContent = data.total_ratings;
+    document.querySelector("#recent-activity h3").textContent = data.recent_ratings || "—";
+
+    const tbody = document.getElementById("admin-table-body");
+    tbody.innerHTML = data.user_metrics.map(u => `
+        <tr>
+            <td>${u.user_id}</td>
+            <td>${u.ratings_count}</td>
+            <td>${u.avg_rating.toFixed(2)}</td>
+            <td>${u.last_activity ?? "—"}</td>
+        </tr>
+    `).join("");
 }
 
 /* ---------------- Pages ---------------- */
@@ -92,6 +151,7 @@ function showHome() {
 }
 
 async function loadTrending() {
+    ensureUserView();
     if(hero) hero.style.display = "none";
     sectionTitle.textContent = "Trending Now";
     movieGrid.classList.remove("movie-details-mode");
@@ -101,6 +161,7 @@ async function loadTrending() {
 }
 
 async function loadGenres() {
+    ensureUserView();
     if(hero) hero.style.display = "none";
     sectionTitle.textContent = "Pick a Genre";
     movieGrid.classList.remove("movie-details-mode");
@@ -120,6 +181,7 @@ async function loadGenres() {
 }
 
 async function recommendForUser() {
+    ensureUserView();
     if(hero) hero.style.display = "none";
     sectionTitle.textContent = "Handpicked For You";
     movieGrid.classList.remove("movie-details-mode");
@@ -131,6 +193,7 @@ async function recommendForUser() {
 }
 
 async function loadHistory() {
+    ensureUserView();
     if(hero) hero.style.display = "none";
     sectionTitle.textContent = "Your Watch History";
     movieGrid.classList.remove("movie-details-mode");
@@ -142,6 +205,7 @@ async function loadHistory() {
 
 async function searchMovies(q) {
     if (!q) return;
+    ensureUserView();
     if(hero) hero.style.display = "none";
     sectionTitle.textContent = `Search: "${q}"`;
     movieGrid.classList.remove("movie-details-mode");
@@ -162,6 +226,7 @@ movieGrid.addEventListener("click", e => {
 });
 
 async function loadMovieDetails(movieId) {
+    ensureUserView();
     if(hero) hero.style.display = "none";
     sectionTitle.textContent = "";
     movieGrid.classList.add("movie-details-mode");
@@ -231,6 +296,7 @@ if(homeBtn) homeBtn.onclick = showHome;
 if(trendingBtn) trendingBtn.onclick = loadTrending;
 if(genreBtn) genreBtn.onclick = loadGenres;
 if(historyBtn) historyBtn.onclick = loadHistory;
+if(adminToggleBtn) adminToggleBtn.onclick = toggleAdminDashboard;
 
 if(navSearchInput) {
     navSearchInput.addEventListener("keydown", e => {

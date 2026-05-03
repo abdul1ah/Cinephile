@@ -3,21 +3,17 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cinephile</title>
+    <title>Cinephile Dashboard</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
-    <div class="bg-gradient"></div>
-    <div class="bg-noise"></div>
-
-    <!-- Removed style="display:none;" so the navbar shows immediately -->
     <nav class="navbar" id="navbar">
-        <div class="logo">🎬 Cinephile</div>
+        <div class="logo"><i class="fa-solid fa-film"></i> Cinephile</div>
 
         <div class="nav-actions" id="nav-links">
             <button class="nav-btn" id="home-btn">Home</button>
@@ -25,25 +21,22 @@
             <button class="nav-btn" id="genre-btn">Genre</button>
             <button class="nav-btn" id="history-btn">History</button>
 
-            <div class="nav-btn ghost" style="display:flex;align-items:center;gap:0.5rem;">
+            <div class="search-container">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input
-                    type="text"
-                    id="nav-search-input"
-                    placeholder="Search"
-                    style="background:transparent;border:none;color:inherit;outline:none;width:90px;"
-                />
+                <input type="text" id="nav-search-input" placeholder="Search movies..." />
             </div>
             
-            <!-- Removed the Logout button -->
+            <!-- NEW: Admin Dashboard Toggle -->
+            <button class="nav-btn admin-btn" id="admin-toggle-btn">
+                <i class="fa-solid fa-chart-pie"></i> Admin
+            </button>
         </div>
     </nav>
 
-    <!-- Removed style="display:none;" so the movie grid shows immediately -->
     <div id="main-content">
         <section class="hero" id="hero">
-            <h1>Welcome to your Cinema📽️</h1>
-            <h2>Personalized. Reimagined.</h2>
+            <h1>Welcome to your Cinema</h1>
+            <p>Personalized recommendations powered by collaborative filtering.</p>
         </section>
 
         <section class="recommendations">
@@ -52,37 +45,38 @@
         </section>
     </div>
 
-    <!-- Kept the admin container hidden since Abdullah is a standard user -->
     <div id="admin-container" class="admin-dashboard-layout" style="display:none;">
         <div class="admin-header">
-            <h2>Admin Dashboard</h2>
-            <p>Platform Analytics & User Oversight</p>
+            <h2>Platform Analytics</h2>
+            <p>Overview of system metrics and user engagement.</p>
         </div>
 
         <div class="admin-cards">
-            <div id="total-users" class="stat-card"><p>0</p><span>Total Users</span></div>
-            <div id="total-movies" class="stat-card"><p>0</p><span>Total Movies</span></div>
-            <div id="total-ratings" class="stat-card"><p>0</p><span>Total Ratings</span></div>
-            <div id="recent-activity" class="stat-card"><p>0</p><span>Recent Ratings</span></div>
+            <div id="total-users" class="stat-card"><h3>0</h3><p>Total Users</p></div>
+            <div id="total-movies" class="stat-card"><h3>0</h3><p>Total Movies</p></div>
+            <div id="total-ratings" class="stat-card"><h3>0</h3><p>Total Ratings</p></div>
+            <div id="recent-activity" class="stat-card"><h3>0</h3><p>Recent Ratings</p></div>
         </div>
 
-        <h3>User Performance Metrics</h3>
-        <table id="user-table">
-            <thead>
-                <tr>
-                    <th>User ID</th>
-                    <th>Ratings Count</th>
-                    <th>Avg Rating</th>
-                    <th>Last Activity</th>
-                </tr>
-            </thead>
-            <tbody id="admin-table-body">
-            </tbody>
-        </table>
+        <div class="admin-table-container">
+            <h3>User Performance Metrics</h3>
+            <table id="user-table">
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Ratings Count</th>
+                        <th>Avg Rating</th>
+                        <th>Last Activity</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-table-body">
+                    <!-- Populated by JS -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    
     <script src="/static/main.js"></script>
 
 </body>
