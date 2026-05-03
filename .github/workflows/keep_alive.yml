@@ -1,0 +1,21 @@
+name: Keep Hugging Face Space Awake
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every single day
+    - cron: '0 0 * * *'
+  
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch: 
+
+jobs:
+  ping-space:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Wake-up Ping to Hugging Face
+        # We use curl to hit your Space's direct URL. 
+        # -sL makes it silent but follows redirects.
+        # -w prints the HTTP status code in the GitHub logs so you know it worked.
+        run: |
+          echo "Pinging Cinephile_Hub..."
+          curl -sL -w "\nHTTP Status: %{http_code}\n" https://abdullah-32-cinephile-hub.hf.space
