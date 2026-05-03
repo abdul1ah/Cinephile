@@ -3,6 +3,7 @@ import pickle
 import requests
 import pandas as pd
 import numpy as np
+import time
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -32,7 +33,6 @@ if os.path.exists(FRONTEND_DIR):
     print(f"FRONTEND_CONTENTS: {os.listdir(FRONTEND_DIR)}")
 print(f"---------------------------")
 
-# Initialize globals
 similarity_matrix = None
 movie_index_map = None
 movie_metadata = {}
@@ -42,15 +42,16 @@ sampled_df = pd.DataFrame()
 ratings_df = pd.DataFrame()
 movies_df = pd.DataFrame()
 
-# Load dataframes once at startup
 try:
     csv_path = os.path.join(DATA_DIR, "sampled_data.csv")
     sampled_df = pd.read_csv(csv_path)
-    # Ensure ratings.csv and movies.csv are available for Admin Stats
     ratings_path = os.path.join(DATA_DIR, "ratings.csv")
     movies_path = os.path.join(DATA_DIR, "movies.csv")
-    ratings_df = pd.read_csv(ratings_path)
-    movies_df = pd.read_csv(movies_path)
+    
+    if os.path.exists(ratings_path):
+        ratings_df = pd.read_csv(ratings_path)
+    if os.path.exists(movies_path):
+        movies_df = pd.read_csv(movies_path)
 except Exception as e:
     print(f"CRITICAL: Could not load CSV data: {e}")
 
@@ -88,7 +89,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# --- MIDDLEWARE ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -97,9 +97,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- FRONTEND ROUTING (FIXED) ---
-
-# 1. Serve the index.html at the ROOT URL "/"
 @app.get("/", include_in_schema=False)
 async def serve_index():
     index_file = os.path.join(FRONTEND_DIR, "index.html")
@@ -111,11 +108,9 @@ async def serve_index():
         "hint": "Check if your folder is named 'frontend' inside 'Script'"
     }
 
-# 2. Mount the Script/frontend folder so the HTML can find /static/style.css etc.
 if os.path.exists(FRONTEND_DIR):
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
-# --- TMDB & LOGIC ---
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 TMDB_BASE_URL = "https://api.themoviedb.org/3"
 
@@ -179,21 +174,9 @@ def hybrid_predict(user_id: int, movie_id: int, alpha: float):
     cb = content_score(user_id, movie_id)
     return alpha * cf + (1 - alpha) * cb
 
-# --- API ENDPOINTS ---
 @app.get("/health")
 def health():
     return {"status": "ok", "models_loaded": collaborative_model is not None}
-
-# class LoginRequest(BaseModel):
-#     username: str
-#     password: str
-
-# @app.post("/login")
-# def login(data: LoginRequest):
-#     user = USERS.get(data.username)
-#     if not user or user["password"] != data.password:
-#         raise HTTPException(status_code=401, detail="Invalid credentials")
-#     return {"user_id": user["user_id"], "role": user["role"], "username": data.username}
 
 @app.get("/recommend")
 def recommend(user_id: int=19685, n: int = Query(10, le=50), alpha: float = Query(0.7, ge=0.0, le=1.0)):
@@ -236,6 +219,7 @@ def user_history(user_id: int=19685):
                     "poster": movie_data.get("poster"), 
                     "rating": rating
                 })
+                time.sleep(0.2)
             return history
             
         inner_uid = collaborative_model.trainset.to_inner_uid(int(user_id))
@@ -264,8 +248,18 @@ def admin_stats(username: str = Query(None)):
         raise HTTPException(status_code=403, detail="Unauthorized")
     
     total_users = int(sampled_df["userId"].nunique()) if not sampled_df.empty and "userId" in sampled_df.columns else 0
-    total_movies = int(movies_df["movieId"].nunique()) if not movies_df.empty and "movieId" in movies_df.columns else 0
-    total_ratings = int(len(ratings_df)) if not ratings_df.empty else 0
+    
+    # FIX: Fallback to sampled_df if movies_df is missing (Hugging Face / CI)
+    if not movies_df.empty and "movieId" in movies_df.columns:
+        total_movies = int(movies_df["movieId"].nunique())
+    else:
+        total_movies = int(sampled_df["movieId"].nunique()) if not sampled_df.empty else 0
+
+    # FIX: Fallback to sampled_df if ratings_df is missing (Hugging Face / CI)
+    if not ratings_df.empty:
+        total_ratings = int(len(ratings_df))
+    else:
+        total_ratings = int(len(sampled_df)) if not sampled_df.empty else 0
     
     user_metrics = []
     if not sampled_df.empty and "userId" in sampled_df.columns:
@@ -289,12 +283,9 @@ def admin_stats(username: str = Query(None)):
 
 @app.get("/trending")
 def get_trending(limit: int = Query(20, le=50)):
-    # Simple trending logic: return a slice of your movies
-    # Or implement a real 'trending' score if you have one
     if not ALL_MOVIES:
         raise HTTPException(status_code=503, detail="Data not loaded")
     
-    # Example: Return the first 'limit' movies from your metadata
     results = []
     for mid in ALL_MOVIES[:limit]:
         results.append(enrich_movie(mid))
@@ -302,8 +293,6 @@ def get_trending(limit: int = Query(20, le=50)):
 
 @app.get("/movie/{movie_id}")
 def get_movie_details(movie_id: int):
-    # We removed the strict 'raise HTTPException' here.
-    # Now it will safely return the movie using the fallback logic above!
     return enrich_movie(movie_id)
 
 @app.get("/recommend/genre")

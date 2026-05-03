@@ -29,6 +29,7 @@ jobs:
       - name: Run Pytest
         env:
           TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          working-directory: ${{ github.workspace }}  
           GITHUB_WORKSPACE: ${{ github.workspace }}
           DATA_PATH: ${{ github.workspace }}/Data/sampled_data.csv 
           PYTHONPATH: ${{ github.workspace }}
