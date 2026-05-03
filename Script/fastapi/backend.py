@@ -219,6 +219,25 @@ def recommend(user_id: int=19685, n: int = Query(10, le=50), alpha: float = Quer
 @app.get("/user/history")
 def user_history(user_id: int=19685):
     try:
+        if not ratings_df.empty and 'userId' in ratings_df.columns:
+            user_data = ratings_df[ratings_df['userId'] == int(user_id)]
+            
+            if 'timestamp' in user_data.columns:
+                user_data = user_data.sort_values(by='timestamp', ascending=False)
+            
+            history = []
+            for _, row in user_data.head(15).iterrows(): 
+                mid = int(row['movieId'])
+                rating = float(row['rating'])
+                movie_data = enrich_movie(mid)
+                history.append({
+                    "movie_id": mid, 
+                    "title": movie_data.get("title"), 
+                    "poster": movie_data.get("poster"), 
+                    "rating": rating
+                })
+            return history
+            
         inner_uid = collaborative_model.trainset.to_inner_uid(int(user_id))
         user_ratings = collaborative_model.trainset.ur.get(inner_uid, [])
         history = []
@@ -227,7 +246,9 @@ def user_history(user_id: int=19685):
             movie_data = enrich_movie(mid)
             history.append({"movie_id": mid, "title": movie_data.get("title"), "poster": movie_data.get("poster"), "rating": float(rating)})
         return history
-    except: return []
+    except Exception as e:
+        print(f"History Error: {e}") 
+        return []
 
 @app.get("/search")
 def search_movies(query: str = Query(..., min_length=1)):

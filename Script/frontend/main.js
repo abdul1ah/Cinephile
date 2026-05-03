@@ -22,8 +22,9 @@ const CURRENT_USER_ID = 19685;
 
 // Use an empty string for relative paths so it works on both Localhost and Hugging Face
 const BACKEND_URL = ""; 
+let adminChartInstance = null; 
 let isLoading = false;
-let isAdminView = false; // Tracks if we are looking at the admin dashboard
+let isAdminView = false;
 
 /* ---------------- UI Helpers ---------------- */
 
@@ -126,7 +127,6 @@ async function loadAdminMetrics() {
     const data = await apiGet("/admin/stats", { username: "admin" });
     if (!data) return;
 
-    // Notice we grab the <h3> inside the card now based on the new HTML
     document.querySelector("#total-users h3").textContent = data.total_users;
     document.querySelector("#total-movies h3").textContent = data.total_movies;
     document.querySelector("#total-ratings h3").textContent = data.total_ratings;
@@ -141,6 +141,59 @@ async function loadAdminMetrics() {
             <td>${u.last_activity ?? "—"}</td>
         </tr>
     `).join("");
+
+    const ctx = document.getElementById('userActivityChart').getContext('2d');
+    
+    if (adminChartInstance) {
+        adminChartInstance.destroy();
+    }
+
+    const labels = data.user_metrics.map(u => `User ${u.user_id}`);
+    const chartData = data.user_metrics.map(u => u.ratings_count);
+
+    Chart.defaults.color = '#a1a1aa';
+    Chart.defaults.font.family = 'Inter';
+
+    adminChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Total Ratings',
+                data: chartData,
+                backgroundColor: '#00ffcc',
+                borderRadius: 0, 
+                barPercentage: 0.5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#18181b',
+                    titleColor: '#fff',
+                    bodyColor: '#a1a1aa',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderWidth: 1,
+                    padding: 12
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255,255,255,0.05)', 
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
 }
 
 /* ---------------- Pages ---------------- */
@@ -188,14 +241,14 @@ async function recommendForUser() {
 
     const data = await apiGet("/recommend", { user_id: CURRENT_USER_ID, n: 12 });
     if (data) renderMovies(data, m =>
-        `<p class="score">Taste Match: ${m.predicted_rating ? m.predicted_rating.toFixed(2) : 'N/A'}</p>`
+        `<p class="score">Predicted Feedback: ${m.predicted_rating ? m.predicted_rating.toFixed(2) : 'N/A'}</p>`
     );
 }
 
 async function loadHistory() {
     ensureUserView();
     if(hero) hero.style.display = "none";
-    sectionTitle.textContent = "Your Watch History";
+    sectionTitle.textContent = "Your Previously Rated Movies";
     movieGrid.classList.remove("movie-details-mode");
 
     const data = await apiGet("/user/history", { user_id: CURRENT_USER_ID });
