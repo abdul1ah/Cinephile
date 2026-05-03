@@ -21,7 +21,7 @@ PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 
 # Define specific folder paths
 DATA_DIR = os.path.join(PROJECT_ROOT, "Data")
-MODEL_DIR = os.path.join(SCRIPT_DIR, "saved_models")
+MODEL_DIR = os.path.join(SCRIPT_DIR, "models")
 FRONTEND_DIR = os.path.join(SCRIPT_DIR, "frontend") # Path to Script/frontend
 
 # Diagnostics printed to Hugging Face logs
