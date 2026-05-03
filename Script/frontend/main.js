@@ -127,10 +127,10 @@ async function loadAdminMetrics() {
     const data = await apiGet("/admin/stats", { username: "admin" });
     if (!data) return;
 
-    document.querySelector("#total-users h3").textContent = data.total_users;
-    document.querySelector("#total-movies h3").textContent = data.total_movies;
-    document.querySelector("#total-ratings h3").textContent = data.total_ratings;
-    document.querySelector("#recent-activity h3").textContent = data.recent_ratings || "—";
+    document.querySelector("#total-users h3").textContent = data.total_users.toLocaleString();
+    document.querySelector("#total-movies h3").textContent = data.total_movies.toLocaleString();
+    document.querySelector("#total-ratings h3").textContent = data.total_ratings.toLocaleString();
+    document.querySelector("#recent-activity h3").textContent = data.recent_ratings ? data.recent_ratings.toLocaleString() : "—";
 
     const tbody = document.getElementById("admin-table-body");
     tbody.innerHTML = data.user_metrics.map(u => `

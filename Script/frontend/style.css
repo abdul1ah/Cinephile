@@ -253,9 +253,12 @@ input:-webkit-autofill:active{
 }
 
 .stat-card h3 {
-    font-size: 3rem;
+    font-size: clamp(1.5rem, 2.5vw, 3rem); 
     color: var(--text-main);
     margin-bottom: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;    
+    text-overflow: ellipsis;
 }
 
 .stat-card p {
